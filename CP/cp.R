@@ -1,5 +1,7 @@
 library(TensorEconometrics)
 library(tensorTS)
+library(dplyr)
+library(qgraph)
 
 set.seed(20230502)
 
@@ -9,6 +11,14 @@ data("traditional_data")
 
 # Convert tensor data to tensor object
 tensor_data <- as.tensor(tensor_data)
+econ_names <- c("y", "Dp", "r", "ys", "Dps")
+country_names <- c("Argentina", "Australia", "Austria", "Belgium", "Brazil", 
+                "Canada", "China", "Chile", "Finland", "France", "Germany",
+                "India", "Indonesia", "Italy", "Japan", "Korea", "Malaysia",
+                "Mexico", "Netherlands", "Norway", "New Zealand", "Peru",
+                "Philippines", "South Africa", "Singapore", "Spain", "Sweden",
+                "Switzerland", "Thailand", "Turkey", "United Kingdom",
+                "United States")
 
 # Visualize time series
 mplot(tensor_data[, 1:5, ])
@@ -25,7 +35,9 @@ B <- cp_est$U[[2]]
 C <- cp_est$U[[3]]
 
 # Find index of maximum value in first factor of A
-which.max(A[, 1]) # Peak occurs around time point 39
+series <- 1
+ts.plot(A[,series])
+peak_time <- which.max(abs(A[, series]))
 
 # Determine which economic variable the first - sixth principal component of A
 # contributes the most to
@@ -33,18 +45,18 @@ econ_significance <- C %*% diag(cp_est$lambdas)
 econ_var <- apply(abs(econ_significance), 2, which.max)
 
 # Interpret economic variables
-names(traditional_data)[econ_var] 
+econ_names[econ_var] 
 
 # Plot of data to see similarities
 ts.plot(traditional_data[, 2])
 
-# Determine which country the first, second, and sixth principal components of B
-# contribute the most to
+# Determine which country the first, second, and sixth principal components of 
+# B contribute the most to
 country_significance <- B %*% diag(cp_est$lambdas)
 country_var <- apply(abs(country_significance), 2, which.max)
 
 # Interpret country variables
-names(traditional_data)[country_var]
+country_names[country_var]
 
 # The PCs influence the Argentina (1) variables the most, interest rates and
 # inflation. Also affect Brazil (5) and Peru (22). Refer to MAR plots for
@@ -52,8 +64,7 @@ names(traditional_data)[country_var]
 
 ####################################################################
 
-library(dplyr)
-# Try the same with normalization
+# Normalize the traditional data
 norm_traditional <- traditional_data %>% 
   scale(center = FALSE) %>% 
   as.matrix(byrow = TRUE) %>% 
@@ -61,80 +72,67 @@ norm_traditional <- traditional_data %>%
   aperm(c(1, 3, 2))
 
 mplot(norm_traditional[, 1:5, ])
+
+# Determine optimal CP rank for normalized data
 norm_rank <- cp_rank_selection(as.tensor(norm_traditional), 20)
 
-# Perform CP decomposition with 13 components
-cp_est <- cp(as.tensor(norm_traditional), num_components = 13)
+# Perform CP decomposition with 13 components for normalized data
+cp_est_norm <- cp(as.tensor(norm_traditional), num_components = 13)
 
-# Extract factor matrices
-A <- cp_est$U[[1]]
-B <- cp_est$U[[2]]
-C <- cp_est$U[[3]]
+# Extract factor matrices for normalized data
+A_norm <- cp_est_norm$U[[1]]
+B_norm <- cp_est_norm$U[[2]]
+C_norm <- cp_est_norm$U[[3]]
 
-# Find index of maximum value in first factor of A
-which.max(A[, 1]) # Peak occurs around time point 117, now closer to recession
+# Find index of maximum value in first factor of A for normalized data
+peak_time_norm <- which.max(A_norm[, 1])
 
-# Determine which economic variable the first - sixth principal component of A
-# contributes the most to
-econ_significance <- C %*% diag(cp_est$lambdas)
-econ_var <- apply(abs(econ_significance), 2, which.max)
+# Determine which economic variable the first - sixth principal component of A contributes the most to for normalized data
+econ_significance_norm <- C_norm %*% diag(cp_est_norm$lambdas)
+econ_var_norm <- apply(abs(econ_significance_norm), 2, which.max)
 
-# Interpret economic variables
-names(traditional_data)[econ_var] 
+# Interpret economic variables for normalized data
+econ_names[econ_var_norm] 
 
-# Determine which country the first, second, and sixth principal components of B
-# contribute the most to
-country_significance <- B %*% diag(cp_est$lambdas)
-country_var <- apply(abs(country_significance), 2, which.max)
+# Determine which country the first, second, and sixth principal components of B contribute the most to for normalized data
+country_significance_norm <- B_norm %*% diag(cp_est_norm$lambdas)
+country_var_norm <- apply(abs(country_significance_norm), 2, which.max)
 
-names(traditional_data)[country_var]
+# Interpret country variables for normalized data
+country_names[country_var_norm]
 
 ################################################################
 
 # We can do the same analysis to see whether order matters in the tensor.
 # Rearrange the fibers such that continents are clustered together
-
-# form groups using graphical lasso
-library(qgraph)
-corr_countries <- cor_auto((traditional_data[,110:160]+diag(0.000001, nrow = 161)))
-glasso_countries <- EBICglasso(corr_countries, nrow(traditional_data), 0,
-                               threshold = TRUE)
-BICgraph <- qgraph(glasso_countries, layout = "spring", title = "bic",
-                   details = TRUE)
-
 rearrange_idx <- c(1, 22, 8, 5, 18, 32, 6, 7, 15, 16, 24, 12, 25, 13, 17, 23,
                    29, 2, 21, 11, 30, 3, 9, 20, 27, 19,4, 28, 31, 14, 10, 26)
 rearranged_tensor <- norm_traditional[,rearrange_idx,]
 
-norm_rank <- cp_rank_selection(as.tensor(rearranged_tensor), 20)
-
-# Perform CP decomposition with 13 components
-cp_est <- cp(as.tensor(norm_traditional), num_components = 15)
+# Perform CP decomposition with 15 components
+rearranged_cp <- cp(as.tensor(rearranged_tensor), num_components = 15)
 
 # Extract factor matrices
-A <- cp_est$U[[1]]
-B <- cp_est$U[[2]]
-C <- cp_est$U[[3]]
+rearranged_A <- rearranged_cp$U[[1]]
+rearranged_B <- rearranged_cp$U[[2]]
+rearranged_C <- rearranged_cp$U[[3]]
 
 # Find index of maximum value in first factor of A
-which.max(A[, 1]) # Peak occurs around time point 74
+peak_time <- which.max(rearranged_A[, 1]) 
 
 # Determine which economic variable the first - sixth principal component of A
 # contributes the most to
-econ_significance <- C %*% diag(cp_est$lambdas)
-econ_var <- apply(abs(econ_significance), 2, which.max)
-
-# Interpret economic variables
-names(traditional_data)[econ_var] 
+rearranged_econ_sig <- rearranged_C %*% diag(rearranged_cp$lambdas)
+rearranged_econ_var <- apply(abs(rearranged_econ_sig), 2, which.max)
+econ_names[rearranged_econ_var]
 
 # Determine which country the first, second, and sixth principal components of B
 # contribute the most to
-country_significance <- B %*% diag(cp_est$lambdas)
-country_var <- apply(abs(country_significance), 2, which.max)
+rearranged_country_sig <- rearranged_B %*% diag(rearranged_cp$lambdas)
+rearranged_country_var <- apply(abs(rearranged_country_sig), 2, which.max)
+country_names[rearranged_country_var]
 
-names(traditional_data)[country_var]
-
-ts.plot(A[,1])
+ts.plot(rearranged_A[, 1])
 
 # Lesson: order matters!
 
