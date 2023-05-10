@@ -75,8 +75,10 @@ rearrange_idx <- c(1, 22, 8, 5, 18, 32, 6, 7, 15, 16, 24, 12, 25, 13, 17, 23,
                    29, 2, 21, 11, 30, 3, 9, 20, 27, 19,4, 28, 31, 14, 10, 26)
 rearranged_tensor <- tensor_data@data[,rearrange_idx,]
 
+rearranged_rank <- cp_rank_selection(as.tensor(rearranged_tensor), 25)
+
 # Perform CP decomposition with 15 components
-rearranged_cp <- cp(as.tensor(rearranged_tensor), num_components = 15)
+rearranged_cp <- cp(as.tensor(rearranged_tensor), num_components = 8)
 
 # Extract factor matrices
 rearranged_A <- rearranged_cp$U[[1]]
@@ -101,9 +103,3 @@ country_names[rearranged_country_var]
 ts.plot(rearranged_A[, 1])
 
 # Lesson: order matters!
-
-
-
-tmp <- rand_tensor(c(30,20,40))
-cp_rank_selection(tmp, 10)
-
