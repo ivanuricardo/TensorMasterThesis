@@ -2,15 +2,17 @@ library(TensorEconometrics)
 library(tensorTS)
 library(dplyr)
 library(qgraph)
+library(abind)
 
 set.seed(20230502)
-
 # Load data
+data("tensor_data_levels")
 data("tensor_data")
 data("traditional_data")
 
 # Convert tensor data to tensor object
-tensor_data <- as.tensor(tensor_data)
+tensor_data <- as.tensor(abind(tensor_data[,,1], tensor_data_levels[3:163,,2:3], along = 3))
+
 econ_names <- c("y", "Dp", "r", "ys", "Dps")
 country_names <- c("Argentina", "Australia", "Austria", "Belgium", "Brazil", 
                 "Canada", "China", "Chile", "Finland", "France", "Germany",
@@ -34,8 +36,11 @@ A <- cp_est$U[[1]]
 B <- cp_est$U[[2]]
 C <- cp_est$U[[3]]
 
+# Is this unique?
+cp_uniqueness(cp_est)
+
 # Find index of maximum value in first factor of A
-series <- 1
+series <- 3
 ts.plot(A[,series])
 peak_time <- which.max(abs(A[, series]))
 
@@ -138,4 +143,6 @@ ts.plot(rearranged_A[, 1])
 
 
 
+tmp <- rand_tensor(c(30,20,40))
+cp_rank_selection(tmp, 10)
 
