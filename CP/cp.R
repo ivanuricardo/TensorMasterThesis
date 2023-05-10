@@ -40,7 +40,7 @@ C <- cp_est$U[[3]]
 cp_uniqueness(cp_est)
 
 # Find index of maximum value in first factor of A
-series <- 3
+series <- 1
 ts.plot(A[,series])
 peak_time <- which.max(abs(A[, series]))
 
@@ -67,52 +67,13 @@ country_names[country_var]
 # inflation. Also affect Brazil (5) and Peru (22). Refer to MAR plots for
 # visualization of this
 
-####################################################################
-
-# Normalize the traditional data
-norm_traditional <- traditional_data %>% 
-  scale(center = FALSE) %>% 
-  as.matrix(byrow = TRUE) %>% 
-  array(dim = c(161, 5, 32)) %>% 
-  aperm(c(1, 3, 2))
-
-mplot(norm_traditional[, 1:5, ])
-
-# Determine optimal CP rank for normalized data
-norm_rank <- cp_rank_selection(as.tensor(norm_traditional), 20)
-
-# Perform CP decomposition with 13 components for normalized data
-cp_est_norm <- cp(as.tensor(norm_traditional), num_components = 13)
-
-# Extract factor matrices for normalized data
-A_norm <- cp_est_norm$U[[1]]
-B_norm <- cp_est_norm$U[[2]]
-C_norm <- cp_est_norm$U[[3]]
-
-# Find index of maximum value in first factor of A for normalized data
-peak_time_norm <- which.max(A_norm[, 1])
-
-# Determine which economic variable the first - sixth principal component of A contributes the most to for normalized data
-econ_significance_norm <- C_norm %*% diag(cp_est_norm$lambdas)
-econ_var_norm <- apply(abs(econ_significance_norm), 2, which.max)
-
-# Interpret economic variables for normalized data
-econ_names[econ_var_norm] 
-
-# Determine which country the first, second, and sixth principal components of B contribute the most to for normalized data
-country_significance_norm <- B_norm %*% diag(cp_est_norm$lambdas)
-country_var_norm <- apply(abs(country_significance_norm), 2, which.max)
-
-# Interpret country variables for normalized data
-country_names[country_var_norm]
-
 ################################################################
 
 # We can do the same analysis to see whether order matters in the tensor.
 # Rearrange the fibers such that continents are clustered together
 rearrange_idx <- c(1, 22, 8, 5, 18, 32, 6, 7, 15, 16, 24, 12, 25, 13, 17, 23,
                    29, 2, 21, 11, 30, 3, 9, 20, 27, 19,4, 28, 31, 14, 10, 26)
-rearranged_tensor <- norm_traditional[,rearrange_idx,]
+rearranged_tensor <- tensor_data@data[,rearrange_idx,]
 
 # Perform CP decomposition with 15 components
 rearranged_cp <- cp(as.tensor(rearranged_tensor), num_components = 15)
