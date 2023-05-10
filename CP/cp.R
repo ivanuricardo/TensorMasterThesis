@@ -13,6 +13,12 @@ data("traditional_data")
 # Convert tensor data to tensor object
 tensor_data <- as.tensor(abind(tensor_data[,,1], tensor_data_levels[3:163,,2:3], along = 3))
 
+# Demean the data
+tensor_means <- apply(tensor_data@data, MARGIN = c(2,3), mean)
+array_means <- array(tensor_means, dim = c(32,3,161)) %>% 
+  aperm(c(3,1,2))
+tensor_data <- as.tensor(tensor_data@data - array_means)
+
 econ_names <- c("y", "Dp", "r", "ys", "Dps")
 country_names <- c("Argentina", "Australia", "Austria", "Belgium", "Brazil", 
                 "Canada", "China", "Chile", "Finland", "France", "Germany",
