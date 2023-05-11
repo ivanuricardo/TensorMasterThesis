@@ -1,7 +1,6 @@
 library(TensorEconometrics)
 library(tensorTS)
 library(dplyr)
-library(qgraph)
 
 set.seed(20230502)
 # Load data
@@ -23,7 +22,7 @@ country_names <- c("Argentina", "Australia", "Austria", "Belgium", "Brazil",
                 "United States")
 
 # Visualize time series
-mplot(tensor_data[, 20:24, ])
+mplot(tensor_data[, 1:5, ])
 
 # Determine optimal CP rank
 rank_selection <- cp_rank_selection(tensor_data, 20)
