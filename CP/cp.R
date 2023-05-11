@@ -1,6 +1,7 @@
 library(TensorEconometrics)
 library(tensorTS)
 library(dplyr)
+library(ggplot2)
 
 set.seed(20230502)
 # Load data
@@ -107,3 +108,54 @@ country_names[rearranged_country_var]
 ts.plot(rearranged_A[, 1])
 
 # Lesson: order matters!
+
+##############
+cp_decomp <- cp(tensor_data, num_components = 1)
+
+U1_data <- data.frame(time = 1:length(cp_decomp$U[[1]][,1]), 
+                   values = cp_decomp$U[[1]][,1])
+
+ggplot(U1_data, aes(x = time, y = values)) +
+  geom_line() +
+  geom_vline(xintercept = 27, linetype = "longdash", color = "blue") +
+  geom_vline(xintercept = 48, linetype = "longdash", color = "blue") + 
+  geom_vline(xintercept = 61, linetype = "longdash", color = "blue") + 
+  annotate("text", x = 20, y = max(U1_data$values), label = "1986Q2",color = "blue") + 
+  annotate("text", x = 54, y = max(U1_data$values), label = "1991Q2",color = "blue") + 
+  annotate("text", x = 67, y = max(U1_data$values), label = "1994Q1",color = "blue") + 
+  ggtitle("Time Factor")
+
+U2_data <- data.frame(time = 1:length(cp_decomp$U[[2]][,1]), 
+                   values = cp_decomp$U[[2]][,1])
+
+ggplot(U2_data, aes(x = time, y = values)) +
+  geom_line() +
+  xlab("Countries") +
+  ggtitle("Country Factor") +
+  geom_vline(xintercept = 5, linetype = "longdash", color = "blue") + 
+  annotate("text", x = 6, y = max(U2_data$values), label = "Brazil", color = "blue") + 
+  geom_vline(xintercept = 22, linetype = "longdash", color = "blue") + 
+  annotate("text", x = 23, y = max(U2_data$values), label = "Peru", color = "blue")
+  
+U3_data <- data.frame(value = cp_decomp$U[[3]][,1],
+                      label = c("y", "Dp", "r"))
+
+ggplot(U3_data, aes(x = label, y = value, fill = label)) +
+  geom_bar(stat = "identity", alpha = 0.6) +
+  xlab("Economic Indicator") +
+  ylab("Value") +
+  ggtitle("Histogram of U3_data") +
+  scale_fill_manual(values = c("blue", "purple", "red"), guide = FALSE)
+  
+# We can see that there are groups between the countries, most notably between Brazil, Peru, and Argentina
+# These mostly correspond to changes in inflation and interest rate
+# This all happens majorly between the time period of 1986Q2 and 1991Q2
+  
+########################################
+
+# Higher rank approximation via CP decomposition
+
+
+
+
+
