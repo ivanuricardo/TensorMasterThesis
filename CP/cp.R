@@ -2,22 +2,16 @@ library(TensorEconometrics)
 library(tensorTS)
 library(dplyr)
 library(qgraph)
-library(abind)
 
 set.seed(20230502)
 # Load data
-data("tensor_data_levels")
 data("tensor_data")
-data("traditional_data")
-
-# Convert tensor data to tensor object
-tensor_data <- as.tensor(abind(tensor_data[,,1], tensor_data_levels[3:163,,2:3], along = 3))
 
 # Demean the data
-tensor_means <- apply(tensor_data@data, MARGIN = c(2,3), mean)
+tensor_means <- apply(tensor_data, MARGIN = c(2,3), mean)
 array_means <- array(tensor_means, dim = c(32,3,161)) %>% 
   aperm(c(3,1,2))
-tensor_data <- as.tensor(tensor_data@data - array_means)
+tensor_data <- as.tensor(tensor_data - array_means)
 
 econ_names <- c("y", "Dp", "r", "ys", "Dps")
 country_names <- c("Argentina", "Australia", "Austria", "Belgium", "Brazil", 
@@ -29,7 +23,7 @@ country_names <- c("Argentina", "Australia", "Austria", "Belgium", "Brazil",
                 "United States")
 
 # Visualize time series
-mplot(tensor_data[, 1:5, ])
+mplot(tensor_data[, 20:24, ])
 
 # Determine optimal CP rank
 rank_selection <- cp_rank_selection(tensor_data, 20)
@@ -84,7 +78,7 @@ rearranged_tensor <- tensor_data@data[,rearrange_idx,]
 rearranged_rank <- cp_rank_selection(as.tensor(rearranged_tensor), 25)
 
 # Perform CP decomposition with 15 components
-rearranged_cp <- cp(as.tensor(rearranged_tensor), num_components = 8)
+rearranged_cp <- cp(as.tensor(rearranged_tensor), num_components = 15)
 
 # Extract factor matrices
 rearranged_A <- rearranged_cp$U[[1]]
@@ -93,6 +87,11 @@ rearranged_C <- rearranged_cp$U[[3]]
 
 # Find index of maximum value in first factor of A
 peak_time <- which.max(rearranged_A[, 1]) 
+
+# Find index of maximum value in first factor of A
+series <- 5
+ts.plot(rearranged_A[,series])
+peak_time <- which.max(abs(rearranged_A[, series]))
 
 # Determine which economic variable the first - sixth principal component of A
 # contributes the most to
