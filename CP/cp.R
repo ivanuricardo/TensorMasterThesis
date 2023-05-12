@@ -2,6 +2,7 @@ library(TensorEconometrics)
 library(tensorTS)
 library(dplyr)
 library(ggplot2)
+library(gridExtra)
 
 set.seed(20230502)
 # Load data
@@ -147,15 +148,49 @@ ggplot(U3_data, aes(x = label, y = value, fill = label)) +
   ggtitle("Histogram of U3_data") +
   scale_fill_manual(values = c("blue", "purple", "red"), guide = FALSE)
   
-# We can see that there are groups between the countries, most notably between Brazil, Peru, and Argentina
+# We can see that there are groups between the countries, most notably between
+# Brazil, Peru, and Argentina
 # These mostly correspond to changes in inflation and interest rate
 # This all happens majorly between the time period of 1986Q2 and 1991Q2
   
 ########################################
 
 # Higher rank approximation via CP decomposition
+higher_cp <- cp(tensor_data, num_components = 5, max_iter = 150)
 
+# We check the percentage of the F-norm and it is approximately 75.7%
+# We obtain a visualization of all components below
 
+for (j in 1:5) {
+  cpU <- data.frame(timeval = 1:nrow(higher_cp$U[[1]]), value = higher_cp$U[[1]][, j])
+  p <- ggplot(data = cpU, aes(x = timeval, y = value)) + 
+    geom_line() +
+    ggtitle(paste0("Time", ", Factor ", j))
+  assign(paste0("plot_1", j), p)
+}
 
+for (j in 1:5) {
+  cpU <- data.frame(timeval = 1:nrow(higher_cp$U[[2]]), value = higher_cp$U[[2]][, j])
+  p <- ggplot(data = cpU, aes(x = timeval, y = value)) + 
+    geom_line() +
+    ggtitle(paste0("Country", ", Factor ", j))
+  assign(paste0("plot_2", j), p)
+}
 
+for (j in 1:5) {
+  cpU <- data.frame(timeval = c("y", "Dp", "r"), value = higher_cp$U[[3]][, j])
+  p <- ggplot(data = cpU, aes(x = timeval, y = value, 
+                              fill = timeval)) + 
+    geom_bar(stat = "identity", alpha = 0.6) + 
+    xlab("Economic Indicator") + 
+    ylab("Value") + 
+    ggtitle(paste0("Economic", ", Factor ", j)) +
+    scale_fill_manual(values = c("blue", "purple", "red"), guide = FALSE)
+  assign(paste0("plot_3", j), p)
+}
+# arrange plots in a grid of 5 columns and 3 rows
+
+grid.arrange(plot_11, plot_12, plot_13, plot_14, plot_15,
+             plot_21, plot_22, plot_23, plot_24, plot_25,
+             plot_31, plot_32, plot_33, plot_34, plot_35, ncol = 5)
 
