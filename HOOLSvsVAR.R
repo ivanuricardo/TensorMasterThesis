@@ -1,7 +1,6 @@
 # Testing HOOLS vs VAR
 library(TensorEconometrics)
 library(dplyr)
-library(vars)
 
 var_ols <- function(A){
   dimensions_A <- dim(A)
@@ -31,9 +30,9 @@ response_tensor <- demeaned_tensor_data@data[2:161,,]
 HOOLS_parameters <- HOOLS(as.tensor(response_tensor), as.tensor(predictor_tensor), 1, 1)
 
 # Compare HOOLS and VAR
-# The first matrix of HOOLS parameter should line up with the first row of the VAR parameter
-# Note I don't use the unfold function, but rather the matrix function in order to obtain the correct
-# parameters.
+# The first matrix of HOOLS parameter should line up with the first row of the VAR
+# parameter. Note I don't use the unfold function, but rather the matrix function
+# in order to obtain the correct parameters.
 
 HOOLS_parameters@data[,,1,1] # Corresponds to the first row of the VAR parameter, [,,1,2] corresponds 
 # to the second row
