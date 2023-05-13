@@ -1,6 +1,10 @@
 library(TensorEconometrics)
 library(tensorTS)
 library(dplyr)
+library(purrr)
+library(ggplot2)
+library(tidyr)
+
 
 set.seed(20230507)
 
@@ -81,4 +85,45 @@ country_names[country_idx]
 
 # We get that the 5 factors affect Argentina, Brazil, Mexico, Peru, and Turkey 
 # the most
+
+############################################
+# Can do some additional diagnostics on the ranks by plotting the fnorm with different
+# tucker ranks
+
+# Call the time dimension K1, country dimension K2, and econ dimension K3
+# For K1, we save fnorm while keeping constant (K1, 1, 1), (K1, 3, 1), (K1, 8, 2)
+# and (K1, 15, 3)
+k11 <- expand.grid(1:161, 1, 1)
+k12 <- expand.grid(1:161, 3, 1)
+k13 <- expand.grid(1:161, 8, 2)
+k14 <- expand.grid(1:161, 15, 3)
+
+time_df1 <- apply(k11, MARGIN = 1, function(x) tucker(tensor_data, x)$fnorm_resid)
+time_df2 <- apply(k12, MARGIN = 1, function(x) tucker(tensor_data, x)$fnorm_resid)
+time_df3 <- apply(k13, MARGIN = 1, function(x) tucker(tensor_data, x)$fnorm_resid)
+time_df4 <- apply(k14, MARGIN = 1, function(x) tucker(tensor_data, x)$fnorm_resid)
+
+time_df <- cbind(time_df1, time_df2, time_df3, time_df4)
+
+# Define parameter grids
+ks <- list(
+  expand.grid(1:161, 1, 1),
+  expand.grid(1:161, 3, 1),
+  expand.grid(1:161, 8, 2),
+  expand.grid(1:161, 15, 3)
+)
+
+# Apply function for each parameter grid and store in a list
+time_dfs <- lapply(ks, function(k) apply(k, MARGIN = 1,
+                                         function(x) tucker(tensor_data, x)$fnorm_resid))
+
+# Combine all data frames into one
+time_df <- do.call(cbind, time_dfs) %>% 
+  data.frame(time = 1:nrow(time_df)) %>% 
+  gather(key = "series", value = "value", -time)
+
+# Create ggplot
+ggplot(data = time_df, aes(x = time, y = value, color = series)) + 
+  geom_line() + 
+  labs(x = "Time", y = "Value", color = "Series")
 
