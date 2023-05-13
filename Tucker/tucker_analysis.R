@@ -71,7 +71,7 @@ unfolded_G <- unfold(G2, 2, c(1,3))
 # This is the same as having 32 responses and 5 predictors, the predictors being
 # the factors
 country_factor_model <- lm(t(unfolded_tensor@data) ~ t(unfolded_G@data))
-country_sum <- summary(country_factor_model)
+country_sum <- summary(country_factor_model) 
 
 # This is 32 equations, each with 5 factors explaining them.
 # Can we attribute the factors to the countries?
