@@ -1,3 +1,7 @@
+# I want to try the analysis without the Latin American countries
+# The problem with this is there may be confounders because we are not controlling for
+# some countries.
+
 library(TensorEconometrics)
 library(tensorTS)
 library(dplyr)
@@ -10,10 +14,10 @@ set.seed(20230507)
 data("tensor_data")
 data("traditional_data")
 
-country_names <- c("Argentina", "Australia", "Austria", "Belgium", "Brazil", 
+country_names <- c("Australia", "Austria", "Belgium",  
                 "Canada", "China", "Chile", "Finland", "France", "Germany",
                 "India", "Indonesia", "Italy", "Japan", "Korea", "Malaysia",
-                "Mexico", "Netherlands", "Norway", "New Zealand", "Peru",
+                 "Netherlands", "Norway", "New Zealand", 
                 "Philippines", "South Africa", "Singapore", "Spain", "Sweden",
                 "Switzerland", "Thailand", "Turkey", "United Kingdom",
                 "United States")
@@ -24,21 +28,13 @@ array_means <- array(tensor_means, dim = c(32,3,161)) %>%
   aperm(c(3,1,2))
 tensor_data <- as.tensor(tensor_data - array_means)
 
+# Remove LA countries
+tensor_data <- tensor_data[,-c(1, 5, 18, 22),]
+
 # Determine optimal tucker ranks
-tucker_rank_selection(tensor_data, 0.001)
-# Interesting to note - only when the ridge lambda is changed from 0.002 to 0.001 
-# is when we see a change in the tucker ranks. It goes from 1 time dimension to 95
-# time dimensions
+tucker_rank_selection(tensor_data)
 
-# Xia Xu Zhu estimate
-log(tensor_data@modes[1])/(10 * tensor_data@modes[1])
-
-# Wang uses a different formula, namely
-sqrt(32*3*log(161)/(10*161))
-
-# We get the same results
-
-# Most important note: there are three main countries and one main economic factor
+# Now instead of 3 countries, we only get one country
 
 ############################################
 # Can do some additional diagnostics on the ranks by plotting the fnorm with different
@@ -49,10 +45,10 @@ sqrt(32*3*log(161)/(10*161))
 # and (K1, 15, 3)
 
 kc <- list(
-  expand.grid(5, 1:32, 1),
-  expand.grid(10, 1:32, 2),
-  expand.grid(15, 1:32, 2),
-  expand.grid(20, 1:32, 3)
+  expand.grid(5, 1:28, 1),
+  expand.grid(10, 1:28, 2),
+  expand.grid(15, 1:28, 2),
+  expand.grid(20, 1:28, 3)
 )
 
 country_dfs <- lapply(kc, function(k) apply(k, MARGIN = 1,
@@ -60,7 +56,7 @@ country_dfs <- lapply(kc, function(k) apply(k, MARGIN = 1,
 
 # Combine all data frames into one
 country_df <- do.call(cbind, country_dfs) %>% 
-  data.frame(country = 1:32) %>% 
+  data.frame(country = 1:28) %>% 
   gather(key = "series", value = "value", -country) %>% 
   mutate(
     series = case_when(
@@ -76,7 +72,7 @@ ggplot(data = country_df, aes(x = country, y = value, color = series)) +
   geom_line() + 
   labs(x = "Country Factors", y = "Value", color = "Series")
 
-# I choose 5 country factors
+# I choose 10 country factors
 
 # Define parameter grids
 kt <- list(
@@ -108,7 +104,7 @@ ggplot(data = time_df, aes(x = time, y = value, color = series)) +
   geom_line() + 
   labs(x = "Time Factors", y = "Value", color = "Series")
 
-# I choose 10 time factors
+# I choose 20 time factors
 
 # Define parameter grids
 ke <- list(
@@ -145,10 +141,13 @@ ggplot(data = econ_df, aes(x = econ, y = value, color = series)) +
 ###################################################
 
 # Decompose tensor into tucker portions
-tucker_tensor <- tucker(tensor_data, ranks = c(10, 5, 3))
+tucker_tensor <- tucker(tensor_data, ranks = c(20, 10, 3))
+
+# Interesting to note here: we only explain 65% instead of 85% as we did
+# before. There is more variation
 
 tucker_time <- ttm(tucker_tensor$Z, tucker_tensor$U[[1]], m = 1)
-ts.plot(tucker_time@data[,1,1])
+ts.plot(tucker_time@data[,1,3])
 
 ################################################
 
@@ -173,10 +172,6 @@ country_sum <- summary(country_factor_model)
 # This is 32 equations, each with 5 factors explaining them.
 # Can we attribute the factors to the countries?
 country_r2 <- lapply(country_sum, function (x) x$r.squared)
-country_idx <- which(country_r2 > 0.7)
+country_idx <- which(country_r2 > 0.9)
 country_names[country_idx]
-
-# We get that the 5 factors affect Argentina, Brazil, Mexico, Peru, and Turkey 
-# the most
-
 
