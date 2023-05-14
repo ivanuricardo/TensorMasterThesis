@@ -46,16 +46,6 @@ sqrt(32*3*log(161)/(10*161))
 
 tucker_rank_selection(rearranged_tensor)
 
-# Decompose tensor into tucker portions
-tucker_tensor <- tucker(tensor_data, ranks = c(10, 5, 3))
-rearranged_tucker <- tucker(rearranged_tensor, ranks = c(6, 3, 3))
-
-tucker_time <- ttm(tucker_tensor$Z, tucker_tensor$U[[1]], m = 1)
-ts.plot(tucker_time@data[,3,2])
-
-rearranged_time <- ttm(rearranged_tucker$Z, rearranged_tucker$U[[1]], m = 1)
-ts.plot(rearranged_time@data[,3,2])
-
 ############################################
 # Can do some additional diagnostics on the ranks by plotting the fnorm with different
 # tucker ranks
@@ -90,14 +80,14 @@ country_df <- do.call(cbind, country_dfs) %>%
 # Create ggplot
 ggplot(data = country_df, aes(x = country, y = value, color = series)) + 
   geom_line() + 
-  labs(x = "Country", y = "Value", color = "Series")
+  labs(x = "Country Factors", y = "Value", color = "Series")
 
 # Define parameter grids
 kt <- list(
-  expand.grid(1:50, 1, 1),
-  expand.grid(1:50, 3, 1),
-  expand.grid(1:50, 8, 2),
-  expand.grid(1:50, 15, 3)
+  expand.grid(1:50, 5, 1),
+  expand.grid(1:50, 10, 2),
+  expand.grid(1:50, 15, 3),
+  expand.grid(1:50, 25, 3)
 )
 
 # Apply function for each parameter grid and store in a list
@@ -110,17 +100,61 @@ time_df <- do.call(cbind, time_dfs) %>%
   gather(key = "series", value = "value", -time) %>% 
   mutate(
     series = case_when(
-      series == "X1" ~ "(K1, 1, 1)",
-      series == "X2" ~ "(K1, 3, 1)",
-      series == "X3" ~ "(K1, 8, 2)",
-      series == "X4" ~ "(K1, 15, 3)"
+      series == "X1" ~ "(K1, 5, 1)",
+      series == "X2" ~ "(K1, 10, 2)",
+      series == "X3" ~ "(K1, 15, 3)",
+      series == "X4" ~ "(K1, 25, 3)"
     )
   )
 
 # Create ggplot
 ggplot(data = time_df, aes(x = time, y = value, color = series)) + 
   geom_line() + 
-  labs(x = "Time", y = "Value", color = "Series")
+  labs(x = "Time Factors", y = "Value", color = "Series")
+
+# Define parameter grids
+ke <- list(
+  expand.grid(5, 5, 1:3),
+  expand.grid(10, 5, 1:3),
+  expand.grid(15, 10, 1:3),
+  expand.grid(20, 15, 1:3)
+)
+
+# Apply function for each parameter grid and store in a list
+econ_dfs <- lapply(ke, function(k) apply(k, MARGIN = 1,
+                                         function(x) tucker(tensor_data, x)$fnorm_resid))
+
+# Combine all data frames into one
+econ_df <- do.call(cbind, econ_dfs) %>% 
+  data.frame(econ = 1:3) %>% 
+  gather(key = "series", value = "value", -econ) %>% 
+  mutate(
+    series = case_when(
+      series == "X1" ~ "(10, 5, K3)",
+      series == "X2" ~ "(10, 10, K3)",
+      series == "X3" ~ "(20, 15, K3)",
+      series == "X4" ~ "(20, 25, K3)"
+    )
+  )
+
+# Create ggplot
+ggplot(data = econ_df, aes(x = econ, y = value, color = series)) + 
+  geom_line() + 
+  labs(x = "Econ Factors", y = "Value", color = "Series")
+
+
+###################################################
+
+# Decompose tensor into tucker portions
+tucker_tensor <- tucker(tensor_data, ranks = c(10, 5, 3))
+rearranged_tucker <- tucker(rearranged_tensor, ranks = c(6, 3, 3))
+
+tucker_time <- ttm(tucker_tensor$Z, tucker_tensor$U[[1]], m = 1)
+ts.plot(tucker_time@data[,3,2])
+
+rearranged_time <- ttm(rearranged_tucker$Z, rearranged_tucker$U[[1]], m = 1)
+ts.plot(rearranged_time@data[,3,2])
+
 
 ################################################
 
