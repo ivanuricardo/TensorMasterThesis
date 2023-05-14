@@ -147,7 +147,7 @@ tucker_tensor <- tucker(tensor_data, ranks = c(20, 10, 3))
 # before. There is more variation
 
 tucker_time <- ttm(tucker_tensor$Z, tucker_tensor$U[[1]], m = 1)
-ts.plot(tucker_time@data[,1,3])
+ts.plot(tucker_time@data[,1,1])
 
 ################################################
 

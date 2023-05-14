@@ -25,7 +25,7 @@ array_means <- array(tensor_means, dim = c(32,3,161)) %>%
 tensor_data <- as.tensor(tensor_data - array_means)
 
 # Determine optimal tucker ranks
-tucker_rank_selection(tensor_data, 0.001)
+tucker_rank_selection(tensor_data, 0.002)
 # Interesting to note - only when the ridge lambda is changed from 0.002 to 0.001 
 # is when we see a change in the tucker ranks. It goes from 1 time dimension to 95
 # time dimensions
@@ -148,7 +148,7 @@ ggplot(data = econ_df, aes(x = econ, y = value, color = series)) +
 tucker_tensor <- tucker(tensor_data, ranks = c(10, 5, 3))
 
 tucker_time <- ttm(tucker_tensor$Z, tucker_tensor$U[[1]], m = 1)
-ts.plot(tucker_time@data[,1,1])
+ts.plot(tucker_time@data[,1,3])
 
 ################################################
 
