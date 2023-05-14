@@ -5,7 +5,6 @@ library(purrr)
 library(ggplot2)
 library(tidyr)
 
-
 set.seed(20230507)
 
 data("tensor_data")
@@ -57,6 +56,72 @@ ts.plot(tucker_time@data[,3,2])
 rearranged_time <- ttm(rearranged_tucker$Z, rearranged_tucker$U[[1]], m = 1)
 ts.plot(rearranged_time@data[,3,2])
 
+############################################
+# Can do some additional diagnostics on the ranks by plotting the fnorm with different
+# tucker ranks
+
+# Call the time dimension K1, country dimension K2, and econ dimension K3
+# For K1, we save fnorm while keeping constant (K1, 1, 1), (K1, 3, 1), (K1, 8, 2)
+# and (K1, 15, 3)
+
+kc <- list(
+  expand.grid(5, 1:32, 1),
+  expand.grid(10, 1:32, 2),
+  expand.grid(15, 1:32, 2),
+  expand.grid(20, 1:32, 3)
+)
+
+country_dfs <- lapply(kc, function(k) apply(k, MARGIN = 1,
+                                         function(x) tucker(tensor_data, x)$fnorm_resid))
+
+# Combine all data frames into one
+country_df <- do.call(cbind, country_dfs) %>% 
+  data.frame(country = 1:32) %>% 
+  gather(key = "series", value = "value", -country) %>% 
+  mutate(
+    series = case_when(
+      series == "X1" ~ "(5, K2, 1)",
+      series == "X2" ~ "(10, K2, 2)",
+      series == "X3" ~ "(15, K2, 2)",
+      series == "X4" ~ "(20, K2, 3)"
+    )
+  )
+
+# Create ggplot
+ggplot(data = country_df, aes(x = country, y = value, color = series)) + 
+  geom_line() + 
+  labs(x = "Country", y = "Value", color = "Series")
+
+# Define parameter grids
+kt <- list(
+  expand.grid(1:50, 1, 1),
+  expand.grid(1:50, 3, 1),
+  expand.grid(1:50, 8, 2),
+  expand.grid(1:50, 15, 3)
+)
+
+# Apply function for each parameter grid and store in a list
+time_dfs <- lapply(kt, function(k) apply(k, MARGIN = 1,
+                                         function(x) tucker(tensor_data, x)$fnorm_resid))
+
+# Combine all data frames into one
+time_df <- do.call(cbind, time_dfs) %>% 
+  data.frame(time = 1:50) %>% 
+  gather(key = "series", value = "value", -time) %>% 
+  mutate(
+    series = case_when(
+      series == "X1" ~ "(K1, 1, 1)",
+      series == "X2" ~ "(K1, 3, 1)",
+      series == "X3" ~ "(K1, 8, 2)",
+      series == "X4" ~ "(K1, 15, 3)"
+    )
+  )
+
+# Create ggplot
+ggplot(data = time_df, aes(x = time, y = value, color = series)) + 
+  geom_line() + 
+  labs(x = "Time", y = "Value", color = "Series")
+
 ################################################
 
 # We are interested in the factor structure of the country mode. 
@@ -86,44 +151,4 @@ country_names[country_idx]
 # We get that the 5 factors affect Argentina, Brazil, Mexico, Peru, and Turkey 
 # the most
 
-############################################
-# Can do some additional diagnostics on the ranks by plotting the fnorm with different
-# tucker ranks
-
-# Call the time dimension K1, country dimension K2, and econ dimension K3
-# For K1, we save fnorm while keeping constant (K1, 1, 1), (K1, 3, 1), (K1, 8, 2)
-# and (K1, 15, 3)
-k11 <- expand.grid(1:161, 1, 1)
-k12 <- expand.grid(1:161, 3, 1)
-k13 <- expand.grid(1:161, 8, 2)
-k14 <- expand.grid(1:161, 15, 3)
-
-time_df1 <- apply(k11, MARGIN = 1, function(x) tucker(tensor_data, x)$fnorm_resid)
-time_df2 <- apply(k12, MARGIN = 1, function(x) tucker(tensor_data, x)$fnorm_resid)
-time_df3 <- apply(k13, MARGIN = 1, function(x) tucker(tensor_data, x)$fnorm_resid)
-time_df4 <- apply(k14, MARGIN = 1, function(x) tucker(tensor_data, x)$fnorm_resid)
-
-time_df <- cbind(time_df1, time_df2, time_df3, time_df4)
-
-# Define parameter grids
-ks <- list(
-  expand.grid(1:161, 1, 1),
-  expand.grid(1:161, 3, 1),
-  expand.grid(1:161, 8, 2),
-  expand.grid(1:161, 15, 3)
-)
-
-# Apply function for each parameter grid and store in a list
-time_dfs <- lapply(ks, function(k) apply(k, MARGIN = 1,
-                                         function(x) tucker(tensor_data, x)$fnorm_resid))
-
-# Combine all data frames into one
-time_df <- do.call(cbind, time_dfs) %>% 
-  data.frame(time = 1:nrow(time_df)) %>% 
-  gather(key = "series", value = "value", -time)
-
-# Create ggplot
-ggplot(data = time_df, aes(x = time, y = value, color = series)) + 
-  geom_line() + 
-  labs(x = "Time", y = "Value", color = "Series")
 
