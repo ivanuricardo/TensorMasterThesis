@@ -43,7 +43,7 @@ cp_uniqueness(cp_est)
 # Find index of maximum value in first factor of A
 series <- 1
 ts.plot(A[,series])
-peak_time <- which.max(abs(A[, series]))
+which.max(abs(A[, series]))
 
 # Determine which economic variable the first - sixth principal component of A
 # contributes the most to
@@ -67,48 +67,6 @@ country_names[country_var]
 # The PCs influence the Argentina (1) variables the most, interest rates and
 # inflation. Also affect Brazil (5) and Peru (22). Refer to MAR plots for
 # visualization of this
-
-################################################################
-
-# We can do the same analysis to see whether order matters in the tensor.
-# Rearrange the fibers such that continents are clustered together
-rearrange_idx <- c(1, 22, 8, 5, 18, 32, 6, 7, 15, 16, 24, 12, 25, 13, 17, 23,
-                   29, 2, 21, 11, 30, 3, 9, 20, 27, 19,4, 28, 31, 14, 10, 26)
-rearranged_tensor <- tensor_data@data[,rearrange_idx,]
-
-rearranged_rank <- cp_rank_selection(as.tensor(rearranged_tensor), 25)
-
-# Perform CP decomposition with 15 components
-rearranged_cp <- cp(as.tensor(rearranged_tensor), num_components = 15)
-
-# Extract factor matrices
-rearranged_A <- rearranged_cp$U[[1]]
-rearranged_B <- rearranged_cp$U[[2]]
-rearranged_C <- rearranged_cp$U[[3]]
-
-# Find index of maximum value in first factor of A
-peak_time <- which.max(rearranged_A[, 1]) 
-
-# Find index of maximum value in first factor of A
-series <- 5
-ts.plot(rearranged_A[,series])
-peak_time <- which.max(abs(rearranged_A[, series]))
-
-# Determine which economic variable the first - sixth principal component of A
-# contributes the most to
-rearranged_econ_sig <- rearranged_C %*% diag(rearranged_cp$lambdas)
-rearranged_econ_var <- apply(abs(rearranged_econ_sig), 2, which.max)
-econ_names[rearranged_econ_var]
-
-# Determine which country the first, second, and sixth principal components of B
-# contribute the most to
-rearranged_country_sig <- rearranged_B %*% diag(rearranged_cp$lambdas)
-rearranged_country_var <- apply(abs(rearranged_country_sig), 2, which.max)
-country_names[rearranged_country_var]
-
-ts.plot(rearranged_A[, 1])
-
-# Lesson: order matters!
 
 ##############
 cp_decomp <- cp(tensor_data, num_components = 1)

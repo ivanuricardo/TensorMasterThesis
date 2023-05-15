@@ -15,20 +15,15 @@ tensor_data <- as.tensor(tensor_data - array_means)
 tensor_predictor <- tensor_data[1:160, , ] 
 tensor_response <- tensor_data[2:161, , ] 
 
-HOOLS(tensor_response, tensor_predictor, 1, 1)
+HOOLS_est <- HOOLS(tensor_response, tensor_predictor, 1, 1)
+
+# What I could do is see what the optimal CP rank is for the parameter
+# tensor then fit the rrr function based on that
+cp_rank_selection(HOOLS_est, 30)
+
+# 5 seems like a nice rank to fit
 
 # CP regression with R = 5 and no regularization
-cp_regression <- rrr(tensor_lag, tensor_levels, R = 5)
+cp_regression <- rrr(tensor_predictor@data, tensor_response@data, R = 5)
 
-# CP regression with R= 5 and regularization
-cp_ridge_reg <- rrr(tensor_lag, tensor_levels, R = 5, lambda = 0.01)
-
-sse_list <- list(NULL)
-for (i in 1:10) {
-  sim_regression <- rrr(tensor_lag, tensor_levels, R = i)
-  sse_list[i] <- sim_regression$sse
-}
-
-mean_sse <- mean(unlist(sse_list))
-std_sse <- (1/mean_sse)*unlist(sse_list)
- 
+cp_regression$U
