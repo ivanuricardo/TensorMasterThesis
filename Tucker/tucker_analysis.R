@@ -108,8 +108,6 @@ ggplot(data = time_df, aes(x = time, y = value, color = series)) +
   geom_line() + 
   labs(x = "Time Factors", y = "Value", color = "Series")
 
-# I choose 10 time factors
-
 # Define parameter grids
 ke <- list(
   expand.grid(5, 5, 1:3),
@@ -145,7 +143,7 @@ ggplot(data = econ_df, aes(x = econ, y = value, color = series)) +
 ###################################################
 
 # Decompose tensor into tucker portions
-tucker_tensor <- tucker(tensor_data, ranks = c(10, 5, 3))
+tucker_tensor <- tucker(tensor_data, ranks = c(161, 5, 3))
 
 tucker_time <- ttm(tucker_tensor$Z, tucker_tensor$U[[1]], m = 1)
 ts.plot(tucker_time@data[,1,3])
@@ -154,7 +152,7 @@ ts.plot(tucker_time@data[,1,3])
 
 # We are interested in the factor structure of the country mode. 
 # First, unfold the original data matrix along the country mode
-unfolded_tensor <- unfold(tensor_data, 2, c(1,3))
+unfolded_tensor <- unfold(tensor_data, 1, c(2,3))
 
 # Multiply G by the modes not corresponding to countries
 G1 <- ttm(tucker_tensor$Z, tucker_tensor$U[[1]], m = 1)

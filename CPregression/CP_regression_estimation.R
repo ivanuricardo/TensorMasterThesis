@@ -1,6 +1,5 @@
 devtools::install_github("https://github.com/ivanuricardo/TensorEconometrics")
 library(TensorEconometrics)
-library(rTensor)
 library(MultiwayRegression)
 library(dplyr)
 set.seed(20230501)
@@ -21,9 +20,18 @@ HOOLS_est <- HOOLS(tensor_response, tensor_predictor, 1, 1)
 # tensor then fit the rrr function based on that
 cp_rank_selection(HOOLS_est, 30)
 
-# 5 seems like a nice rank to fit
+# 6 seems like a nice rank to fit
 
-# CP regression with R = 5 and no regularization
-cp_regression <- rrr(tensor_predictor@data, tensor_response@data, R = 5)
+# CP regression with R = 6 and no regularization
+rrr_regression <- rrr(tensor_predictor@data, tensor_response@data, R = 20,
+                      seed = 20230501)
+saveRDS(rrr_regression, "rrr_output.rds")
 
+cp_reg <- cp_regression(tensor_response, tensor_predictor, R = 20,
+                        obs_dim_X = 1, obs_dim_Y = 1, seed = 20230501)
+saveRDS(cp_reg, "cp_reg_output.rds")
+
+HOOLS_est@data - rrr_regression$B
+
+rrr_regression$B - cp_reg$B
 cp_regression$U
