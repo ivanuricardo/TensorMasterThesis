@@ -34,4 +34,3 @@ saveRDS(cp_reg, "cp_reg_output.rds")
 HOOLS_est@data - rrr_regression$B
 
 rrr_regression$B - cp_reg$B
-cp_regression$U

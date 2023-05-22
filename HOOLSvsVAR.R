@@ -38,3 +38,7 @@ HOOLS_parameters@data[,,1,1] # Corresponds to the first row of the VAR parameter
 # to the second row
 
 unfolded_HOOLS <- unfold(HOOLS_parameters, c(4,3), c(2,1))@data
+
+var_parameters - unfolded_HOOLS
+
+

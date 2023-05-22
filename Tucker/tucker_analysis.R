@@ -152,7 +152,7 @@ ts.plot(tucker_time@data[,1,3])
 
 # We are interested in the factor structure of the country mode. 
 # First, unfold the original data matrix along the country mode
-unfolded_tensor <- unfold(tensor_data, 1, c(2,3))
+unfolded_tensor <- unfold(tensor_data, 2, c(1,3))
 
 # Multiply G by the modes not corresponding to countries
 G1 <- ttm(tucker_tensor$Z, tucker_tensor$U[[1]], m = 1)
