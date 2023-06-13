@@ -18,7 +18,7 @@ HOOLS_est <- HOOLS(cp_response, cp_predictor, 1, 1)
 ####################
 
 # CP regression estimation
-cp_reg <- cp_regression(cp_response, cp_predictor, R = 8, obs_dim_X = 1, 
+cp_reg <- cp_regression(cp_response, cp_predictor, R = 6, obs_dim_X = 1, 
                         obs_dim_Y = 1, convThresh = 1e-03, max_iter = 2000)
 
 ####################
