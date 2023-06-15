@@ -1,0 +1,101 @@
+# Cross Validation
+library(TensorEconometrics)
+library(MultiwayRegression)
+set.seed(20230614)
+data(tensor_data)
+
+# Reversed data
+rev_tensor <- aperm(tensor_data, c(2,3,1))
+
+# How many iterations?
+iters <- round(0.3*length(tensor_data[,1,1]))
+
+R_matrix <- matrix(nrow = iters, ncol = 12)
+for (i in 1:7) {
+  fnorm_err <- c()
+  for (j in 1:iters) {
+    # Split into testing and training
+    train_tensor <- as.tensor(tensor_data[j:(112+j),,])
+    test_tensor <- as.tensor(tensor_data[(113+j),,])
+    
+    # Obtain predictors and responses from training data
+    predictor_train <- train_tensor[1:112,,]
+    response_train <- train_tensor[2:113,,]
+    
+    # Estimate CP on predictors and responses
+    cp_est <- cp_regression(response_train, predictor_train, R = (i+1), 1, 1)
+    
+    # Estimate one step ahead and compare to test
+    estimate <- ttt(train_tensor[113,,], cp_est$B, alongA = c(1,2),
+                    alongB = c(1,2))
+    fnorm_err <- append(fnorm_err, fnorm(estimate-test_tensor))
+    print(j)
+  }
+  R_matrix[,i] <- fnorm_err
+}
+
+saveRDS(R_matrix, file = "CP_rw.rds")
+
+line_colors <- rainbow(7)
+matplot(R_matrix, type = "l", col = line_colors, lty = 1)
+legend("topright", legend = 1:7, col = line_colors, lty = 1, bty = "n")
+
+colMeans(R_matrix)
+# R = 2 has the lowest RMSE at 0.17, with R=3 being second lowest at 0.189. Then 
+# R = 6 at 0.20555
+
+## Now for rrr regression as in Locke (2017)
+for (i in 1:7) {
+  fnorm_err <- c()
+  for (j in 1:iters) {
+    train_tensor <- as.tensor(tensor_data[j:(112+j),,])
+    test_tensor <- as.tensor(tensor_data[(113+j),,])
+    
+    # Obtain predictors and responses from training data
+    predictor_train <- train_tensor[1:112,,]
+    response_train <- train_tensor[2:113,,]
+    
+    # Estimate CP on predictors and responses
+    rrr_est <- rrr(predictor_train@data, response_train@data, R = (i+1))
+    
+    # Estimate one step ahead and compare to test
+    estimate <- ttt(train_tensor[113,,], as.tensor(rrr_est$B), alongA = c(1,2),
+                    alongB = c(1,2))
+    fnorm_err <- append(fnorm_err, fnorm(estimate-test_tensor))
+    print(j)
+  }
+  R_matrix[,i] <- fnorm_err
+}
+
+saveRDS(R_matrix, "rrr_rw.rds")
+# Very similar to mine. the first error is the smallest at 0.18501 followed
+# by the second error at 0.21158. The third is the third largest at 0.2124407.
+
+## Now Tucker Regression
+for (i in 1:12) {
+  fnorm_err <- c()
+  for (j in 1:iters) {
+    train_tensor <- as.tensor(rev_tensor[,,j:(112+j)])
+    test_tensor <- as.tensor(rev_tensor[,,(113+j)])
+    
+    # Obtain predictors and responses from training data
+    predictor_train <- train_tensor[,,1:112]
+    response_train <- train_tensor[,,2:113]
+    
+    # Estimate CP on predictors and responses
+    tucker_est <- tucker_regression(predictor_train, response_train,
+                                    R = c((i+1), 3, (i+1), 3), max_iter = 1000)
+    
+    # Estimate one step ahead and compare to test
+    estimate <- ttt(train_tensor[,,113], tucker_est$rebuilt_tnsr, alongA = c(1,2),
+                    alongB = c(1,2))
+    fnorm_err <- append(fnorm_err, fnorm(estimate-test_tensor))
+    print(j)
+  }
+  R_matrix[,i] <- fnorm_err
+}
+
+saveRDS(R_matrix, "tucker_rw.rds")
+
+# Tucker does a poor job. Perhaps due to choosing 3? Regardless, r=(2,3,2,3) is
+# the best fit at 3.592151, while r=(4,3,4,3) is the next best fit at 6.927

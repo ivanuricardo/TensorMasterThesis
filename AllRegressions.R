@@ -26,6 +26,8 @@ cp_reg <- cp_regression(cp_response, cp_predictor, R = 6, obs_dim_X = 1,
 # rrr estimation
 rrr_reg <- rrr(cp_predictor@data, cp_response@data, R = 8)
 
+# Need to check if identification restrictions are applied
+
 ####################
 
 rev_tensor <- aperm(tensor_data, c(2,3,1))
