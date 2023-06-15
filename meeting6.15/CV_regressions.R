@@ -4,6 +4,35 @@ library(MultiwayRegression)
 set.seed(20230614)
 data(tensor_data)
 
+## First a baseline
+iters <- round(0.3*length(tensor_data[,1,1]))
+R_matrix <- matrix(nrow = iters, ncol = 7)
+for (i in 1:7) {
+  fnorm_err <- c()
+  for (j in 1:iters) {
+    # Split into testing and training
+    train_tensor <- as.tensor(tensor_data[j:(112+j),,])
+    test_tensor <- as.tensor(tensor_data[(113+j),,])
+    
+    # Obtain predictors and responses from training data
+    predictor_train <- train_tensor[1:112,,]
+    response_train <- train_tensor[2:113,,]
+    
+    # Estimate CP on predictors and responses
+    hools_est <- HOOLS(response_train, predictor_train, 1, 1)
+    
+    # Estimate one step ahead and compare to test
+    estimate <- ttt(train_tensor[113,,], hools_est, alongA = c(1,2),
+                    alongB = c(1,2))
+    fnorm_err <- append(fnorm_err, fnorm(estimate-test_tensor))
+    print(j)
+  }
+  R_matrix[,i] <- fnorm_err
+}
+saveRDS(R_matrix, "HOOLS_rw.rds")
+
+# RMSFE for HOOLS (no choice of R) is 0.4412856
+
 # Reversed data
 rev_tensor <- aperm(tensor_data, c(2,3,1))
 
@@ -99,3 +128,4 @@ saveRDS(R_matrix, "tucker_rw.rds")
 
 # Tucker does a poor job. Perhaps due to choosing 3? Regardless, r=(2,3,2,3) is
 # the best fit at 3.592151, while r=(4,3,4,3) is the next best fit at 6.927
+
