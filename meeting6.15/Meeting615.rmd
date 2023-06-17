@@ -126,10 +126,11 @@ This may be because I forgot to demean the data.......
 
 tucker_reg <- tucker_regression(X = cp_predictor,
                                 Y = cp_response,
-                                R = c(2,2,3,2),
+                                R = c(7,3,7,3),
                                 convThresh = 1e-05)
 tucker_reg$factors
 tucker_reg$num_iter
+tucker_reg$converged
 ```
 
 

@@ -13,7 +13,7 @@ demeaned_tensor_data <- tensor_data - array_means
 
 ## First a baseline
 iters <- round(0.3*length(tensor_data[,1,1]))
-R_matrix <- matrix(nrow = iters, ncol = 7)
+R_matrix <- matrix(nrow = iters, ncol = 25)
 for (i in 1:7) {
   fnorm_err <- c()
   for (j in 1:iters) {
@@ -137,3 +137,39 @@ for (i in 1:7) {
 }
 
 saveRDS(R_matrix, "tucker_rw.rds")
+
+# Tucker Regression with different values of R
+tensor_means <- apply(tensor_data, MARGIN = c(2,3), mean)
+array_means <- array(tensor_means, dim = c(32,3,161)) %>% 
+  aperm(c(3,1,2))
+demeaned_tensor_data <- tensor_data - array_means
+
+## First a baseline
+iters <- round(0.3*length(tensor_data[,1,1]))
+R_matrix <- matrix(nrow = iters, ncol = 7)
+for (k in 1:5) {
+  for (i in 1:5) {
+    fnorm_err <- c()
+    for (j in 1:iters) {
+      train_tensor <- as.tensor(demeaned_tensor_data[j:(112+j),,])
+      test_tensor <- as.tensor(demeaned_tensor_data[(113+j),,])
+      
+      # Obtain predictors and responses from training data
+      predictor_train <- train_tensor[1:112,,]
+      response_train <- train_tensor[2:113,,]
+      
+      # Estimate CP on predictors and responses
+      tucker_est <- tucker_regression(predictor_train, response_train,
+                                      R = c((k+1), 3, (i+1), 3), max_iter = 1000)
+      
+      # Estimate one step ahead and compare to test
+      estimate <- ttt(train_tensor[113,,], tucker_est$B, alongA = c(1,2),
+                      alongB = c(1,2))
+      fnorm_err <- append(fnorm_err, fnorm(estimate-test_tensor))
+      print(j)
+    }
+  R_matrix[,i] <- fnorm_err
+  }
+}
+
+saveRDS(R_matrix, "TuckerAltIdx.rds")
