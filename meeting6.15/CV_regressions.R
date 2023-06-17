@@ -173,3 +173,5 @@ for (k in 1:5) {
 }
 
 saveRDS(R_matrix, "TuckerAltIdx.rds")
+
+R <- c(2,3,4,5)
