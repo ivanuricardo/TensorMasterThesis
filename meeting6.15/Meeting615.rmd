@@ -1,0 +1,140 @@
+---
+title: "Meeting 6/15"
+output: html_document
+date: "2023-06-15"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+```{r libraries, message=FALSE}
+library(TensorEconometrics)
+library(MultiwayRegression)
+library(dplyr)
+set.seed(20230615)
+```
+
+## CP Regression
+
+CP regression is implemented using the `cp_regression` function in TensorEconometrics.
+This is going to be different to the one implemented in the **MultiwayRegression** package, as that one does **not** implement identification restrictions as stated in their paper. 
+To show this, we provide the output of both `rrr` and `cp_regression` on toy datasets.
+
+```{r CP regression comparison}
+X <- rnorm_tnsr(c(50, 2, 3))
+Y <- rnorm_tnsr(c(50, 2, 3))
+R <- 4  # For demonstration
+
+cp_est <- cp_regression(Y = Y, X = X, R = R, obs_dim_X = 1, obs_dim_Y = 1)
+rrr_est <- rrr(Y = Y@data, X = X@data, R = R)
+```
+
+According to Lock (2018), the norm of vector obtained via the first column of each factor matrix should be equal to one another.
+We can check this through
+
+```{r uniqueness}
+apply(rrr_est$U[[1]], 1, function(x) sqrt(sum(x^2)))
+apply(rrr_est$U[[2]], 1, function(x) sqrt(sum(x^2)))
+apply(rrr_est$V[[1]], 1, function(x) sqrt(sum(x^2)))
+apply(rrr_est$V[[2]], 1, function(x) sqrt(sum(x^2)))
+```
+
+I do not apply this identification restriction, as it is one that is not common in the literature. 
+Instead, I normalize and extract lambda values.
+The column norms of the factor matrices I impose must be 1, and I also impose an ordering such that the greatest norm is ordered first. 
+This deals with scaling and permutation identification efficiently.
+
+```{r proper uniqueness}
+apply(cp_est$factor_mat[[1]], 2, function(x) sqrt(sum(x^2)))
+apply(cp_est$factor_mat[[2]], 2, function(x) sqrt(sum(x^2)))
+apply(cp_est$factor_mat[[3]], 2, function(x) sqrt(sum(x^2)))
+apply(cp_est$factor_mat[[4]], 2, function(x) sqrt(sum(x^2)))
+cp_est$lambdas
+```
+
+Despite this difference, I obtain the same results as Lock. 
+
+## Choosing R
+
+I use CV to choose R using a rolling window forecast estimating one-step-ahead.
+I compare rrr and CP regression and find the optimal R is two.
+CP_rw and rrr_rw are matrices with 48 rows and 7 columns. 
+I forecast 48 steps and test this for R=1:7 using the preprocessed GVAR dataset.
+I FORGOT TO DEMEAN THE DATA D:
+
+```{r CV results}
+CP_rw <- readRDS("CP_rw.rds")
+rrr_rw <- readRDS("rrr_rw.rds")
+hools_rw <- readRDS("HOOLS_rw.rds")
+
+colMeans(CP_rw)
+colMeans(rrr_rw)
+colMeans(hools_rw)
+```
+
+## CP Regression Full Results
+
+I then can estimate CP regression using R=2 and try interpreting the results.
+
+```{r CP regression results}
+data("tensor_data")
+cp_means <- apply(tensor_data, MARGIN = c(2,3), mean)
+cp_array_means <- array(cp_means, dim = c(32,3,161)) %>% 
+  aperm(c(3,1,2))
+cp_data <- as.tensor(tensor_data - cp_array_means)
+
+# HOOLS estimation. Line by line ordinary least squares
+cp_predictor <- cp_data[1:160, , ] 
+cp_response <- cp_data[2:161, , ] 
+
+cp_reg <- cp_regression(cp_response, cp_predictor, R = 3, obs_dim_X = 1, 
+                        obs_dim_Y = 1, convThresh = 1e-04, max_iter = 1200)
+cp_reg$lambdas
+cp_reg$factor_mat
+cp_reg$converged
+cp_reg$num_iter
+``` 
+
+## Choosing R in Tucker
+
+Choosing R using CV did not work as well as intended.
+Because I have r1, r2, r3, r4 components which can all vary, I decided to try R=c(r, 3, r, 3).
+In other words, always estimate a model with three components such that I can see how models with R = c(1,3,1,3), R = c(2,3,2,3), R = c(3,3,3,3), etc. perform. The results are as follows.
+
+```{r Tucker CV}
+tucker_rw <- readRDS("tucker_rw.rds")
+colMeans(tucker_rw)
+```
+
+However, we can also find R using the eigenvalue technique of Lam and Yao (2012) and Wang et. al (2022). 
+This assumes we have a consistent initial estimator for the parameter tensor. 
+We use the HOOLS estimate as that initial estimator.
+
+```{r Factor decision}
+tols_est <- HOOLS(cp_response, cp_predictor, 1, 1)
+tucker_rank_selection(tols_est)
+```
+
+## Tucker Regression
+
+We similarly have results for the Tucker Regression, although this performs poorly compared to the CP regression. 
+This may be because I forgot to demean the data.......
+
+```{r Tucker Regression}
+
+tucker_reg <- tucker_regression(X = cp_predictor,
+                                Y = cp_response,
+                                R = c(2,2,3,2),
+                                convThresh = 1e-05)
+tucker_reg$factors
+tucker_reg$num_iter
+```
+
+
+## Tucker Uniqueness
+See manuscript
+
+## Extensions
+See manuscript (vector-on-tensor, tensor-on-vector)

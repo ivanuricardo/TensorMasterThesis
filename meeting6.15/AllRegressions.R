@@ -39,6 +39,6 @@ demeaned_tensor_data <- as.tensor(rev_tensor - array_means)
 predictor_tensor <- demeaned_tensor_data@data[,,1:160]
 response_tensor <- demeaned_tensor_data@data[,,2:161]
 
-tucker_est <- tucker_regression(X=as.tensor(predictor_tensor),
-                                Y=as.tensor(response_tensor), R=c(10,3,10,3),
+tucker_est <- tucker_regression(X=cp_predictor,
+                                Y=cp_response, R=c(2,3,2,3),
                                 convThresh = 1e-06)

@@ -1,8 +1,15 @@
 # Cross Validation
 library(TensorEconometrics)
 library(MultiwayRegression)
+library(dplyr)
 set.seed(20230614)
 data(tensor_data)
+
+# Demean both data sets
+tensor_means <- apply(tensor_data, MARGIN = c(2,3), mean)
+array_means <- array(tensor_means, dim = c(32,3,161)) %>% 
+  aperm(c(3,1,2))
+demeaned_tensor_data <- tensor_data - array_means
 
 ## First a baseline
 iters <- round(0.3*length(tensor_data[,1,1]))
@@ -11,8 +18,8 @@ for (i in 1:7) {
   fnorm_err <- c()
   for (j in 1:iters) {
     # Split into testing and training
-    train_tensor <- as.tensor(tensor_data[j:(112+j),,])
-    test_tensor <- as.tensor(tensor_data[(113+j),,])
+    train_tensor <- as.tensor(demeaned_tensor_data[j:(112+j),,])
+    test_tensor <- as.tensor(demeaned_tensor_data[(113+j),,])
     
     # Obtain predictors and responses from training data
     predictor_train <- train_tensor[1:112,,]
@@ -33,19 +40,16 @@ saveRDS(R_matrix, "HOOLS_rw.rds")
 
 # RMSFE for HOOLS (no choice of R) is 0.4412856
 
-# Reversed data
-rev_tensor <- aperm(tensor_data, c(2,3,1))
-
 # How many iterations?
-iters <- round(0.3*length(tensor_data[,1,1]))
+iters <- round(0.3*length(demeaned_tensor_data[,1,1]))
 
-R_matrix <- matrix(nrow = iters, ncol = 12)
+R_matrix <- matrix(nrow = iters, ncol = 7)
 for (i in 1:7) {
   fnorm_err <- c()
   for (j in 1:iters) {
     # Split into testing and training
-    train_tensor <- as.tensor(tensor_data[j:(112+j),,])
-    test_tensor <- as.tensor(tensor_data[(113+j),,])
+    train_tensor <- as.tensor(demeaned_tensor_data[j:(112+j),,])
+    test_tensor <- as.tensor(demeaned_tensor_data[(113+j),,])
     
     # Obtain predictors and responses from training data
     predictor_train <- train_tensor[1:112,,]
@@ -77,8 +81,8 @@ colMeans(R_matrix)
 for (i in 1:7) {
   fnorm_err <- c()
   for (j in 1:iters) {
-    train_tensor <- as.tensor(tensor_data[j:(112+j),,])
-    test_tensor <- as.tensor(tensor_data[(113+j),,])
+    train_tensor <- as.tensor(demeaned_tensor_data[j:(112+j),,])
+    test_tensor <- as.tensor(demeaned_tensor_data[(113+j),,])
     
     # Obtain predictors and responses from training data
     predictor_train <- train_tensor[1:112,,]
@@ -101,22 +105,30 @@ saveRDS(R_matrix, "rrr_rw.rds")
 # by the second error at 0.21158. The third is the third largest at 0.2124407.
 
 ## Now Tucker Regression
-for (i in 1:12) {
+tensor_means <- apply(tensor_data, MARGIN = c(2,3), mean)
+array_means <- array(tensor_means, dim = c(32,3,161)) %>% 
+  aperm(c(3,1,2))
+demeaned_tensor_data <- tensor_data - array_means
+
+## First a baseline
+iters <- round(0.3*length(tensor_data[,1,1]))
+R_matrix <- matrix(nrow = iters, ncol = 7)
+for (i in 1:7) {
   fnorm_err <- c()
   for (j in 1:iters) {
-    train_tensor <- as.tensor(rev_tensor[,,j:(112+j)])
-    test_tensor <- as.tensor(rev_tensor[,,(113+j)])
+    train_tensor <- as.tensor(demeaned_tensor_data[j:(112+j),,])
+    test_tensor <- as.tensor(demeaned_tensor_data[(113+j),,])
     
     # Obtain predictors and responses from training data
-    predictor_train <- train_tensor[,,1:112]
-    response_train <- train_tensor[,,2:113]
+    predictor_train <- train_tensor[1:112,,]
+    response_train <- train_tensor[2:113,,]
     
     # Estimate CP on predictors and responses
     tucker_est <- tucker_regression(predictor_train, response_train,
                                     R = c((i+1), 3, (i+1), 3), max_iter = 1000)
     
     # Estimate one step ahead and compare to test
-    estimate <- ttt(train_tensor[,,113], tucker_est$rebuilt_tnsr, alongA = c(1,2),
+    estimate <- ttt(train_tensor[113,,], tucker_est$B, alongA = c(1,2),
                     alongB = c(1,2))
     fnorm_err <- append(fnorm_err, fnorm(estimate-test_tensor))
     print(j)
@@ -125,7 +137,3 @@ for (i in 1:12) {
 }
 
 saveRDS(R_matrix, "tucker_rw.rds")
-
-# Tucker does a poor job. Perhaps due to choosing 3? Regardless, r=(2,3,2,3) is
-# the best fit at 3.592151, while r=(4,3,4,3) is the next best fit at 6.927
-
