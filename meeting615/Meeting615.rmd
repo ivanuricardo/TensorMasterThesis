@@ -62,16 +62,18 @@ I use CV to choose R using a rolling window forecast estimating one-step-ahead.
 I compare rrr and CP regression and find the optimal R is two.
 CP_rw and rrr_rw are matrices with 48 rows and 7 columns. 
 I forecast 48 steps and test this for R=1:7 using the preprocessed GVAR dataset.
-I FORGOT TO DEMEAN THE DATA D:
 
 ```{r CV results}
 CP_rw <- readRDS("CP_rw.rds")
 rrr_rw <- readRDS("rrr_rw.rds")
 hools_rw <- readRDS("HOOLS_rw.rds")
+tuckerAltIdx <- readRDS("tuckerAltIdx.rds")
+tucker_rw_cont <- readRDS("tucker_rw_cont.rds")
 
 colMeans(CP_rw)
 colMeans(rrr_rw)
 colMeans(hools_rw)
+colMeans(tucker_rw_cont)
 ```
 
 ## CP Regression Full Results
