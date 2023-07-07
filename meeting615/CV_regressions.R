@@ -17,7 +17,7 @@ demeaned_tensor_data <- tensor_data - array_means
 
 ## First a baseline
 iters <- round(0.3*length(tensor_data[,1,1]))
-R_matrix <- matrix(nrow = iters, ncol = 25)
+R_matrix <- matrix(nrow = iters, ncol = 7)
 for (i in 1:7) {
   fnorm_err <- c()
   for (j in 1:iters) {
@@ -47,7 +47,7 @@ saveRDS(R_matrix, "HOOLS_rw.rds")
 
 # Set the number of cores
 num_cores <- 12
-for (i in 1:7) {
+for (i in 1:2) {
   # Register the parallel backend
   cl <- makeCluster(num_cores)
   registerDoParallel(cl)
@@ -98,7 +98,7 @@ for (i in 1:7) {
   results <- c()
   
   # Parallelize the inner loop
-  foreach(j = 1:iters, .packages = c("TensorEconometrics")) %dopar% {
+  foreach(j = 1:iters, .packages = c("TensorEconometrics", "MultiwayRegression")) %dopar% {
     fnorm_err <- c()
     
     # Split into testing and training
@@ -110,7 +110,7 @@ for (i in 1:7) {
     response_train <- train_tensor[2:113, , ]
     
     # Estimate CP on predictors and responses
-    rrr_est <- rrr(predictor_train, response_train, R = (i+1))
+    rrr_est <- rrr(predictor_train@data, response_train@data, R = (i+1))
     
     # Estimate one step ahead and compare to test
     estimate <- ttt(train_tensor[113, , ], as.tensor(rrr_est$B), alongA = c(1,2), alongB = c(1,2))
@@ -178,63 +178,22 @@ for (i in 1:7) {
   R_matrix[,i] <- fnorm_err
 }
 
-num_cores <- 12
-for (i in 1:7) {
-  # Register the parallel backend
-  cl <- makeCluster(num_cores)
-  registerDoParallel(cl)
-  results <- c()
-  
-  # Parallelize the inner loop
-  foreach(j = 1:iters, .packages = c("TensorEconometrics")) %dopar% {
-    fnorm_err <- c()
-    
-    # Split into testing and training
-    train_tensor <- as.tensor(demeaned_tensor_data[j:(112+j), , ])
-    test_tensor <- as.tensor(demeaned_tensor_data[(113+j), , ])
-    
-    # Obtain predictors and responses from training data
-    predictor_train <- train_tensor[1:112, , ]
-    response_train <- train_tensor[2:113, , ]
-    
-    # Estimate CP on predictors and responses
-    tucker_est <- tucker_regression(response_train, predictor_train,
-                                    R = c((i+1), 3, (i+1), 3), max_iter = 1200)
-    
-    # Estimate one step ahead and compare to test
-    estimate <- ttt(train_tensor[113, , ], tucker_est$B, alongA = c(1,2), alongB = c(1,2))
-    fnorm_err <- append(fnorm_err, RMSE(estimate@data - test_tensor@data, 113))
-    
-    # Return the result
-    fnorm_err
-  } -> results
-  
-  # Close the parallel backend
-  stopCluster(cl)
-  registerDoSEQ()  # Reset to sequential processing
-  
-  # Combine the results into the matrix
-  R_matrix[,i] <- unlist(results)
-  print(i)
-}
-
 saveRDS(R_matrix, "tucker_rw.rds")
 
 #######################################################################
 
 # Tucker Regression with different values of R
-num_cores <- 14
 count_idx <- 0
-for (k in 1:5) {
-  for (i in 1:5) {
-    count_idx <- count_idx+1
-    fnorm_err <- c()
+for (k in 1:7) {
+  for (i in 1:7) {
     cl <- makeCluster(num_cores)
     registerDoParallel(cl)
     results <- c()
-    
+    count_idx <- count_idx+1
+    fnorm_err <- c()
     foreach(j = 1:iters, .packages = c("TensorEconometrics")) %dopar% {
       fnorm_err <- c()
+    
       train_tensor <- as.tensor(demeaned_tensor_data[j:(112+j),,])
       test_tensor <- as.tensor(demeaned_tensor_data[(113+j),,])
       
@@ -250,16 +209,17 @@ for (k in 1:5) {
       # Estimate one step ahead and compare to test
       estimate <- ttt(train_tensor[113,,], tucker_est$B, alongA = c(1,2),
                       alongB = c(1,2))
-      fnorm_err <- append(fnorm_err, RMSE(estimate@data-test_tensor@data, 113))
+      fnorm_err <- append(fnorm_err, RMSE(estimate-test_tensor, 113))
       fnorm_err
     } -> results
-    
+    # Close the parallel backend
     stopCluster(cl)
     registerDoSEQ()  # Reset to sequential processing
     
+    # Combine the results into the matrix
     R_matrix[,count_idx] <- unlist(results)
     print(count_idx)
   }
 }
 
- saveRDS(R_matrix, "TuckerAltIdx.rds")
+saveRDS(R_matrix, "TuckerAltIdx.rds")
