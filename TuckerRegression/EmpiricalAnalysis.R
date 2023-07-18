@@ -26,6 +26,17 @@ HOOLS_parameters <- HOOLS(as.tensor(response_tensor), as.tensor(predictor_tensor
 # Tucker Rank Selection
 tucker_rank_selection(HOOLS_parameters, 160)
 
+# Bayesian Information Criterion
+R <- c(2,2,2,3)
+t1 <- tucker_regression(as.tensor(response_tensor), as.tensor(predictor_tensor),
+                        R = R, max_iter = 1000)
+num_params <- prod(R) + sum(R * t1$B@modes)
+e1 <- as.tensor(response_tensor) - ttt(as.tensor(predictor_tensor),
+                                         t1$B, alongA = 2:3, alongB = 1:2)
+mse <- sum(e1@data * e1@data)/160
+
+bic1 <- num_params * log(160) - 2 * log(mse)
+
 # Estimate Tucker Regression using c(7,3,5,3)
 tuckerReg <- tucker_regression(as.tensor(response_tensor), as.tensor(predictor_tensor),
                                R = c(7,3,5,3), max_iter = 1000)

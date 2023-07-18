@@ -17,7 +17,7 @@ demeaned_tensor_data <- tensor_data - array_means
 
 ## First a baseline
 iters <- round(0.3*length(tensor_data[,1,1]))
-R_matrix <- matrix(nrow = iters, ncol = 7)
+R_matrix <- matrix(nrow = iters, ncol = 50)
 for (i in 1:7) {
   fnorm_err <- c()
   for (j in 1:iters) {
@@ -183,6 +183,7 @@ saveRDS(R_matrix, "tucker_rw.rds")
 #######################################################################
 
 # Tucker Regression with different values of R
+num_cores <- 14
 count_idx <- 0
 for (k in 1:7) {
   for (i in 1:7) {
@@ -203,13 +204,13 @@ for (k in 1:7) {
       
       # Estimate CP on predictors and responses
       tucker_est <- tucker_regression(predictor_train, response_train,
-                                      R = c((k+1), 3, (i+1), 3), max_iter = 1000,
+                                      R = c((k), 3, (i), 3), max_iter = 1000,
                                       )
       
       # Estimate one step ahead and compare to test
       estimate <- ttt(train_tensor[113,,], tucker_est$B, alongA = c(1,2),
                       alongB = c(1,2))
-      fnorm_err <- append(fnorm_err, RMSE(estimate-test_tensor, 113))
+      fnorm_err <- append(fnorm_err, RMSE(estimate@data-test_tensor@data, 1))
       fnorm_err
     } -> results
     # Close the parallel backend
