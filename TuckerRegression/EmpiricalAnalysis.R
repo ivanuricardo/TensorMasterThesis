@@ -9,6 +9,12 @@ countries <- c("AUS", "AUT", "BEL", "CAN", "CHN", "CHL", "FIN",
                "CHE", "THA", "GBR", "USA")
 econind <- c("y", "Dp", "r")
 
+loglike=function(data,linearpre){
+  sigma_est=mean((data-linearpre)^2)
+  L=dnorm(data,linearpre,sqrt(sigma_est),log=TRUE)
+  sum(L)##log-likelihood
+}
+
 # Demean both data sets
 tensor_means <- apply(tensor_data, MARGIN = c(2,3), mean)
 array_means <- array(tensor_means, dim = c(32,3,161)) %>% 
@@ -19,23 +25,24 @@ demeaned_tensor_data <- as.tensor(tensor_data - array_means)
 tdata <- demeaned_tensor_data@data[, -c(1, 5, 18, 22, 30), ]
 
 # Lag split
-predictor_tensor <- tdata[1:160,,]
-response_tensor <- tdata[2:161,,]
-HOOLS_parameters <- HOOLS(as.tensor(response_tensor), as.tensor(predictor_tensor), 1, 1)
+predictor_tensor <- as.tensor(tdata[1:160,,])
+response_tensor <- as.tensor(tdata[2:161,,])
+HOOLS_parameters <- HOOLS(response_tensor, predictor_tensor, 1, 1)
 
 # Tucker Rank Selection
 tucker_rank_selection(HOOLS_parameters, 160)
 
 # Bayesian Information Criterion
-R <- c(2,2,2,3)
-t1 <- tucker_regression(as.tensor(response_tensor), as.tensor(predictor_tensor),
+R <- c(1,1,1,1)
+t1 <- tucker_regression(response_tensor, predictor_tensor,
                         R = R, max_iter = 1000)
-num_params <- prod(R) + sum(R * t1$B@modes)
-e1 <- as.tensor(response_tensor) - ttt(as.tensor(predictor_tensor),
+num_params <- prod(R) + sum(R * t1$B@modes) - sum(R^2)
+e1 <- response_tensor - ttt(predictor_tensor,
                                          t1$B, alongA = 2:3, alongB = 1:2)
 mse <- sum(e1@data * e1@data)/160
 
-bic1 <- num_params * log(160) - 2 * log(mse)
+BIC <- prod(R) + sum(HOOLS_parameters@modes * R) * log(prod(HOOLS_parameters@modes))
+BICoff <- -2 * loglike(response_tensor@data, e1@data) + BIC
 
 # Estimate Tucker Regression using c(7,3,5,3)
 tuckerReg <- tucker_regression(as.tensor(response_tensor), as.tensor(predictor_tensor),

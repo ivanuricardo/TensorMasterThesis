@@ -33,7 +33,7 @@ HOOLS_parameters <- HOOLS(as.tensor(response_tensor), as.tensor(predictor_tensor
 
 # Tucker Regression
 tuckerReg <- tucker_regression(as.tensor(response_tensor), as.tensor(predictor_tensor),
-                               R = c(7,3,5,3), max_iter = 1000)
+                               R = c(1,1,2,2), max_iter = 1000)
 
 # Extract Residuals
 Et <- as.tensor(response_tensor) - ttt(as.tensor(predictor_tensor), 
