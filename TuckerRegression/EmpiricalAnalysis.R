@@ -30,10 +30,18 @@ response_tensor <- as.tensor(tdata[2:161,,])
 HOOLS_parameters <- HOOLS(response_tensor, predictor_tensor, 1, 1)
 
 # Tucker Rank Selection
-tucker_rank_selection(HOOLS_parameters, 160)
+cc <- log(160)/(10*160)
+tucker_rank_selection(HOOLS_parameters, c = cc, 169)
+
+it <- 1:999*0.01
+for (i in it) {
+  tmp <- trs(HOOLS_parameters, c = i, 1)
+  print(tmp)
+}
+trs(HOOLS_parameters, c = 0.001, 160)
 
 # Bayesian Information Criterion
-R <- c(1,1,1,1)
+R <- c(1,1,2,2)
 t1 <- tucker_regression(response_tensor, predictor_tensor,
                         R = R, max_iter = 1000)
 num_params <- prod(R) + sum(R * t1$B@modes) - sum(R^2)
@@ -45,8 +53,8 @@ BIC <- prod(R) + sum(HOOLS_parameters@modes * R) * log(prod(HOOLS_parameters@mod
 BICoff <- -2 * loglike(response_tensor@data, e1@data) + BIC
 
 # Estimate Tucker Regression using c(7,3,5,3)
-tuckerReg <- tucker_regression(as.tensor(response_tensor), as.tensor(predictor_tensor),
-                               R = c(7,3,5,3), max_iter = 1000)
+tuckerReg <- tucker_regression(response_tensor, predictor_tensor,
+                               R = c(1,1,2,2), max_iter = 1000)
 
 # Data frames
 f1 <- data.frame(tuckerReg$factors[[2]])
@@ -54,10 +62,10 @@ f2 <- data.frame(tuckerReg$factors[[3]])
 f3 <- data.frame(tuckerReg$factors[[4]])
 f4 <- data.frame(tuckerReg$factors[[5]])
 
-colnames(f1) <- paste0("F", seq(1, 7))
-colnames(f3) <- paste0("F", seq(1, 5))
-colnames(f2) <- paste0("F", seq(1, 3))
-colnames(f4) <- paste0("F", seq(1, 3))
+colnames(f1) <- paste0("F", 1)
+colnames(f3) <- paste0("F", seq(1, 2))
+colnames(f2) <- paste0("F", 1)
+colnames(f4) <- paste0("F", seq(1, 2))
 rownames(f1) <- countries
 rownames(f3) <- countries
 rownames(f2) <- econind
@@ -85,24 +93,28 @@ color_palette <- c("#006ddb", "white", "#920000")
 # Create heatmap for f1
 ggplot(df1, aes(Factor, Country, fill = Value)) +
   geom_tile() +
-  scale_fill_gradientn(colors = color_palette) +
+  geom_text(aes(label = round(Value,4))) +
+  scale_fill_gradient2(low = "#006ddb", mid = "white", high = "#920000", midpoint = 0) +
   labs(title = "Predictor Variables: Country", x = "Factors", y = "Countries")
 
 # Create heatmap for f2
 ggplot(df2, aes(Factor, Econ, fill = Value)) +
   geom_tile() +
-  scale_fill_gradientn(colors = color_palette) +
-  labs(title = "Predictor Variables: Economic Indicator", x = "Factors", y = "Economic Indicators")
+  geom_text(aes(label = round(Value,4))) +
+  scale_fill_gradient2(low = "#006ddb", mid = "white", high = "#920000", midpoint = 0) +
+  labs(title = "Predictor Variables:\nEconomic Indicator", x = "Factors", y = "Economic Indicators")
 
 # Create heatmap for f3
 ggplot(df3, aes(Factor, Country, fill = Value)) +
   geom_tile() +
-  scale_fill_gradientn(colors = color_palette) +
+  geom_text(aes(label = round(Value,4))) +
+  scale_fill_gradient2(low = "#006ddb", mid = "white", high = "#920000", midpoint = 0) +
   labs(title = "Response Variables: Country", x = "Factors", y = "Countries")
 
 # Create heatmap for f4
 ggplot(df4, aes(Factor, Econ, fill = Value)) +
   geom_tile() +
-  scale_fill_gradientn(colors = color_palette) +
-  labs(title = "Response Variables: Economic Indicator", x = "Factors", y = "Economic Indicators")
+  geom_text(aes(label = round(Value,4))) +
+  scale_fill_gradient2(low = "#006ddb", mid = "white", high = "#920000", midpoint = 0) +
+  labs(title = "Response Variables:\nEconomic Indicator", x = "Factors", y = "Economic Indicators")
 
